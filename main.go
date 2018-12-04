@@ -4,7 +4,6 @@ package main
 
 import (
 	"os"
-	"runtime"
 	"strings"
 
 	. "github.com/portapps/portapps"
@@ -17,14 +16,9 @@ func init() {
 }
 
 func main() {
-	smartgitExe := "smartgit32.exe"
-	if runtime.GOARCH == "amd64" {
-		smartgitExe = "smartgit.exe"
-	}
-
 	Papp.AppPath = AppPathJoin("app")
 	Papp.DataPath = CreateFolder(AppPathJoin("data"))
-	Papp.Process = PathJoin(Papp.AppPath, "bin", smartgitExe)
+	Papp.Process = PathJoin(Papp.AppPath, "bin", "smartgit.exe")
 	Papp.Args = nil
 	Papp.WorkingDir = PathJoin(Papp.AppPath, "bin")
 
@@ -53,6 +47,9 @@ func main() {
 `, "{{ DATA_PATH }}", FormatWindowsPath(Papp.DataPath), -1)); err != nil {
 		Log.Errorf("Cannot write system smartgit.vmoptions: %s", err)
 	}
+
+	// set JAVA_HOME
+	OverrideEnv("SMARTGIT_JAVA_HOME", PathJoin(Papp.AppPath, "jre"))
 
 	Launch(os.Args[1:])
 }
