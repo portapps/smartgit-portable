@@ -1,5 +1,9 @@
 # Changelog
 
+## 18.2.1-4 (2018/12/06)
+
+* Upgrade to SmartGit 18.2.1
+
 ## 18.2.0-3 (2018/12/04)
 
 * SmartGit 18.2 works only on 64-bits systems
