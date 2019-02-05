@@ -1,5 +1,10 @@
 # Changelog
 
+## 18.2.5-2 (2019/02/05)
+
+* Upgrade to SmartGit 18.2.5
+* Switch to TravisCI
+
 ## 18.2.4-7 (2019/01/18)
 
 * Upgrade to SmartGit 18.2.4
