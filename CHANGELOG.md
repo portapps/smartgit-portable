@@ -1,5 +1,9 @@
 # Changelog
 
+## 18.2.6-4 (2019/02/26)
+
+* Upgrade to SmartGit 18.2.6
+
 ## 18.2.5-2 (2019/02/05)
 
 * Upgrade to SmartGit 18.2.5
