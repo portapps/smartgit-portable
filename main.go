@@ -7,36 +7,43 @@ import (
 	"strings"
 
 	. "github.com/portapps/portapps"
+	"github.com/portapps/portapps/pkg/utl"
+)
+
+var (
+	app *App
 )
 
 func init() {
-	Papp.ID = "smartgit-portable"
-	Papp.Name = "SmartGit"
-	Init()
+	var err error
+
+	// Init app
+	if app, err = New("smartgit-portable", "SmartGit"); err != nil {
+		Log.Fatal().Err(err).Msg("Cannot initialize application. See log file for more info.")
+	}
 }
 
 func main() {
-	Papp.AppPath = AppPathJoin("app")
-	Papp.DataPath = CreateFolder(AppPathJoin("data"))
-	Papp.Process = PathJoin(Papp.AppPath, "bin", "smartgit.exe")
-	Papp.Args = nil
-	Papp.WorkingDir = PathJoin(Papp.AppPath, "bin")
+	utl.CreateFolder(app.DataPath)
+	app.Process = utl.PathJoin(app.AppPath, "bin", "smartgit.exe")
+	app.WorkingDir = utl.PathJoin(app.AppPath, "bin")
 
-	CreateFolder(PathJoin(Papp.DataPath, "err"))
+	// create err folder
+	utl.CreateFolder(app.DataPath, "err")
 
 	// create default smartgit.vmoptions if not found
-	customSmartgitOptionsPath := PathJoin(Papp.DataPath, "smartgit.vmoptions")
-	if !Exists(customSmartgitOptionsPath) {
-		if err := CreateFile(customSmartgitOptionsPath, `-Xmx1024m
+	customSmartgitOptionsPath := utl.PathJoin(app.DataPath, "smartgit.vmoptions")
+	if !utl.Exists(customSmartgitOptionsPath) {
+		if err := utl.CreateFile(customSmartgitOptionsPath, `-Xmx1024m
 -Dsmartgit.disableBugReporting=true
 `); err != nil {
-			Log.Errorf("Cannot write default smartgit.vmoptions: %s", err)
+			Log.Fatal().Err(err).Msg("Cannot write default smartgit.vmoptions")
 		}
 	}
 
 	// override system smartgit.vmoptions
-	smartgitOptionsPath := PathJoin(Papp.AppPath, "bin", "smartgit.vmoptions")
-	if err := CreateFile(smartgitOptionsPath, strings.Replace(`-Dsmartboot.sourceDirectory={{ DATA_PATH }}\.updates
+	smartgitOptionsPath := utl.PathJoin(app.AppPath, "bin", "smartgit.vmoptions")
+	if err := utl.CreateFile(smartgitOptionsPath, strings.Replace(`-Dsmartboot.sourceDirectory={{ DATA_PATH }}\.updates
 -Dsmartgit.settings={{ DATA_PATH }}\.settings
 -Dsmartgit.updateCheck.enabled=false
 -Dsmartgit.updateCheck.automatic=false
@@ -44,12 +51,12 @@ func main() {
 -Dsmartgit.disableBugReporting=true
 -XX:ErrorFile={{ DATA_PATH }}\err\hs_err_pid%p.log
 -include-options {{ DATA_PATH }}\smartgit.vmoptions
-`, "{{ DATA_PATH }}", FormatWindowsPath(Papp.DataPath), -1)); err != nil {
-		Log.Errorf("Cannot write system smartgit.vmoptions: %s", err)
+`, "{{ DATA_PATH }}", utl.FormatWindowsPath(app.DataPath), -1)); err != nil {
+		Log.Fatal().Err(err).Msg("Cannot write system smartgit.vmoptions")
 	}
 
 	// set JAVA_HOME
-	OverrideEnv("SMARTGIT_JAVA_HOME", PathJoin(Papp.AppPath, "jre"))
+	utl.OverrideEnv("SMARTGIT_JAVA_HOME", utl.PathJoin(app.AppPath, "jre"))
 
-	Launch(os.Args[1:])
+	app.Launch(os.Args[1:])
 }
