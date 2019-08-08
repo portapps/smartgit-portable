@@ -20,30 +20,12 @@
     <echo message="Preparing release..."/>
 
     <move todir="${tmp.path}\extract2">
-      <fileset dir="${extract.path}\SmartGit"/>
+      <fileset dir="${extract.path}\SmartGit" defaultexcludes="no"/>
     </move>
     <delete dir="${extract.path}"/>
     <move todir="${extract.path}">
-      <fileset dir="${tmp.path}\extract2"/>
+      <fileset dir="${tmp.path}\extract2" defaultexcludes="no"/>
     </move>
-    <delete dir="${extract.path}\jre"/>
-
-    <if>
-      <equals arg1="${atf.arch}" arg2="win32"/>
-      <then>
-        <get src="${jre.win32.url}" dest="${tmp.path}\${jre.folder}-win32.tar.gz" skipexisting="true" verbose="on"/>
-        <gunzip src="${tmp.path}\${jre.folder}-win32.tar.gz"/>
-        <untar src="${tmp.path}\${jre.folder}-win32.tar" dest="${tmp.path}"/>
-        <copydir src="${tmp.path}\${jre.folder}" dest="${extract.path}\jre"/>
-      </then>
-      <else>
-        <get src="${jre.win64.url}" dest="${tmp.path}\${jre.folder}-win64.tar.gz" skipexisting="true" verbose="on"/>
-        <gunzip src="${tmp.path}\${jre.folder}-win64.tar.gz"/>
-        <untar src="${tmp.path}\${jre.folder}-win64.tar" dest="${tmp.path}"/>
-        <copydir src="${tmp.path}\${jre.folder}" dest="${extract.path}\jre"/>
-      </else>
-    </if>
-
   </target>
 
 </project>
