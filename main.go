@@ -6,20 +6,21 @@ import (
 	"os"
 	"strings"
 
-	. "github.com/portapps/portapps"
-	"github.com/portapps/portapps/pkg/utl"
+	"github.com/portapps/portapps/v2"
+	"github.com/portapps/portapps/v2/pkg/log"
+	"github.com/portapps/portapps/v2/pkg/utl"
 )
 
 var (
-	app *App
+	app *portapps.App
 )
 
 func init() {
 	var err error
 
 	// Init app
-	if app, err = New("smartgit-portable", "SmartGit"); err != nil {
-		Log.Fatal().Err(err).Msg("Cannot initialize application. See log file for more info.")
+	if app, err = portapps.New("smartgit-portable", "SmartGit"); err != nil {
+		log.Fatal().Err(err).Msg("Cannot initialize application. See log file for more info.")
 	}
 }
 
@@ -37,7 +38,7 @@ func main() {
 		if err := utl.CreateFile(customSmartgitOptionsPath, `-Xmx1024m
 -Dsmartgit.disableBugReporting=true
 `); err != nil {
-			Log.Fatal().Err(err).Msg("Cannot write default smartgit.vmoptions")
+			log.Fatal().Err(err).Msg("Cannot write default smartgit.vmoptions")
 		}
 	}
 
@@ -52,7 +53,7 @@ func main() {
 -XX:ErrorFile={{ DATA_PATH }}\err\hs_err_pid%p.log
 -include-options {{ DATA_PATH }}\smartgit.vmoptions
 `, "{{ DATA_PATH }}", utl.FormatWindowsPath(app.DataPath), -1)); err != nil {
-		Log.Fatal().Err(err).Msg("Cannot write system smartgit.vmoptions")
+		log.Fatal().Err(err).Msg("Cannot write system smartgit.vmoptions")
 	}
 
 	// set JAVA_HOME
