@@ -59,5 +59,6 @@ func main() {
 	// set JAVA_HOME
 	utl.OverrideEnv("SMARTGIT_JAVA_HOME", utl.PathJoin(app.AppPath, "jre"))
 
+	defer app.Close()
 	app.Launch(os.Args[1:])
 }
