@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/portapps/portapps/v2"
-	"github.com/portapps/portapps/v2/pkg/log"
-	"github.com/portapps/portapps/v2/pkg/utl"
+	"github.com/portapps/portapps/v3"
+	"github.com/portapps/portapps/v3/pkg/log"
+	"github.com/portapps/portapps/v3/pkg/utl"
 )
 
 var (
@@ -57,7 +57,7 @@ func main() {
 	}
 
 	// set JAVA_HOME
-	utl.OverrideEnv("SMARTGIT_JAVA_HOME", utl.PathJoin(app.AppPath, "jre"))
+	os.Setenv("SMARTGIT_JAVA_HOME", utl.PathJoin(app.AppPath, "jre"))
 
 	defer app.Close()
 	app.Launch(os.Args[1:])
