@@ -48,8 +48,6 @@ func main() {
 -Dsmartgit.settings={{ DATA_PATH }}\.settings
 -Dsmartgit.updateCheck.enabled=false
 -Dsmartgit.updateCheck.automatic=false
--Dsmartgit.updateCheck.checkForLatestBuildVisible=false
--Dsmartgit.disableBugReporting=true
 -XX:ErrorFile={{ DATA_PATH }}\err\hs_err_pid%p.log
 -include-options {{ DATA_PATH }}\smartgit.vmoptions
 `, "{{ DATA_PATH }}", utl.FormatWindowsPath(app.DataPath), -1)); err != nil {
