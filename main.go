@@ -1,9 +1,9 @@
 //go:generate go install -v github.com/josephspurrier/goversioninfo/cmd/goversioninfo
-//go:generate goversioninfo -icon=res/papp.ico -manifest=res/papp.manifest
 package main
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/portapps/portapps/v3"
@@ -26,14 +26,14 @@ func init() {
 
 func main() {
 	utl.CreateFolder(app.DataPath)
-	app.Process = utl.PathJoin(app.AppPath, "bin", "smartgit.exe")
-	app.WorkingDir = utl.PathJoin(app.AppPath, "bin")
+	app.Process = filepath.Join(app.AppPath, "bin", "smartgit.exe")
+	app.WorkingDir = filepath.Join(app.AppPath, "bin")
 
 	// create err folder
 	utl.CreateFolder(app.DataPath, "err")
 
 	// create default smartgit.vmoptions if not found
-	customSmartgitOptionsPath := utl.PathJoin(app.DataPath, "smartgit.vmoptions")
+	customSmartgitOptionsPath := filepath.Join(app.DataPath, "smartgit.vmoptions")
 	if !utl.Exists(customSmartgitOptionsPath) {
 		if err := utl.CreateFile(customSmartgitOptionsPath, `-Xmx1024m
 -Dsmartgit.disableBugReporting=true
@@ -43,7 +43,7 @@ func main() {
 	}
 
 	// override system smartgit.vmoptions
-	smartgitOptionsPath := utl.PathJoin(app.AppPath, "bin", "smartgit.vmoptions")
+	smartgitOptionsPath := filepath.Join(app.AppPath, "bin", "smartgit.vmoptions")
 	if err := utl.CreateFile(smartgitOptionsPath, strings.Replace(`-Dsmartboot.sourceDirectory={{ DATA_PATH }}\.updates
 -Dsmartgit.settings={{ DATA_PATH }}\.settings
 -Dsmartgit.updateCheck.enabled=false
@@ -55,7 +55,7 @@ func main() {
 	}
 
 	// set JAVA_HOME
-	os.Setenv("SMARTGIT_JAVA_HOME", utl.PathJoin(app.AppPath, "jre"))
+	os.Setenv("SMARTGIT_JAVA_HOME", filepath.Join(app.AppPath, "jre"))
 
 	defer app.Close()
 	app.Launch(os.Args[1:])
