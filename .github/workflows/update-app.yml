@@ -1,0 +1,178 @@
+name: update-app
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 9 * * *'
+  push:
+    branches:
+      - 'master'
+  pull_request:
+    paths:
+      - '.github/workflows/update-app.yml'
+      - 'build.properties'
+
+jobs:
+  update:
+    if: github.event_name != 'pull_request'
+    runs-on: windows-latest
+    environment: update-app # secrets are gated by this environment
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      -
+        name: GitHub auth token from GitHub App
+        id: write-app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.PORTAPPS_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.PORTAPPS_BOT_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
+      -
+        name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          token: ${{ steps.write-app.outputs.token }}
+          fetch-depth: 0
+          persist-credentials: false
+      -
+        name: Update SmartGit
+        id: update
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: &update-script |
+            const fs = require('fs');
+            const path = require('path');
+
+            const updateFeed = 'https://www.syntevo.com/smartgit/autoupdate';
+            const stablePage = 'https://www.smartgit.dev/download/';
+            const response = await fetch(updateFeed);
+            if (!response.ok) {
+              throw new Error(`Failed to fetch ${updateFeed}: ${response.status}`);
+            }
+            const xml = await response.text();
+            const stableVersions = [...xml.matchAll(/<version>([\s\S]*?)<\/version>/g)]
+              .filter(([, entry]) => entry.includes(`<location>${stablePage}</location>`))
+              .map(([, entry]) => entry.match(/<name>(\d+\.\d+\.\d+)<\/name>/)?.[1])
+              .filter(Boolean);
+            if (stableVersions.length === 0) {
+              throw new Error(`No stable SmartGit release found in ${updateFeed}`);
+            }
+            const version = stableVersions.sort(compareVersions).at(-1);
+
+            const archiveName = `smartgit-${version.replaceAll('.', '_')}-win-portable.7z`;
+            const archiveUrl = `https://download.smartgit.dev/smartgit/${archiveName}`;
+            const archiveResponse = await fetch(archiveUrl, { method: 'HEAD' });
+            if (!archiveResponse.ok) {
+              throw new Error(`Portable archive ${archiveName} is unavailable: ${archiveResponse.status}`);
+            }
+
+            const relativePath = 'build.properties';
+            const filePath = path.join(process.env.GITHUB_WORKSPACE, relativePath);
+            const currentContent = fs.readFileSync(filePath, 'utf8');
+
+            function propertyValue(name) {
+              const match = currentContent.match(new RegExp(`^${name.replaceAll('.', '\\.')}\\s*=\\s*(.+)$`, 'm'));
+              if (!match) {
+                throw new Error(`Missing ${name} in ${relativePath}`);
+              }
+              return match[1].trim();
+            }
+
+            function replaceProperty(content, name, value) {
+              const pattern = new RegExp(`^(${name.replaceAll('.', '\\.')}\\s*=\\s*).+$`, 'm');
+              return content.replace(pattern, (_, prefix) => `${prefix}${value}`);
+            }
+
+            function compareVersions(left, right) {
+              if (!/^\d+\.\d+\.\d+$/.test(left) || !/^\d+\.\d+\.\d+$/.test(right)) {
+                throw new Error(`Invalid version: ${left} or ${right}`);
+              }
+              const leftParts = left.split('.').map(Number);
+              const rightParts = right.split('.').map(Number);
+              for (let i = 0; i < 3; i++) {
+                if (leftParts[i] !== rightParts[i]) {
+                  return leftParts[i] - rightParts[i];
+                }
+              }
+              return 0;
+            }
+
+            const currentVersion = propertyValue('app.version');
+            const currentRelease = Number(propertyValue('app.release'));
+            if (!Number.isInteger(currentRelease) || currentRelease < 0) {
+              throw new Error(`Invalid app.release in ${relativePath}: ${currentRelease}`);
+            }
+            if (compareVersions(version, currentVersion) < 0) {
+              throw new Error(`Upstream version ${version} is older than current version ${currentVersion}`);
+            }
+
+            let updatedContent = replaceProperty(currentContent, 'app.version', version);
+            updatedContent = replaceProperty(updatedContent, 'atf.win64.url', archiveUrl);
+            updatedContent = replaceProperty(updatedContent, 'app.release',
+              String(currentRelease + (version === currentVersion ? 0 : 1)));
+            if (updatedContent !== currentContent) {
+              fs.writeFileSync(filePath, updatedContent, 'utf8');
+              core.info(`Updated ${relativePath}`);
+            } else {
+              core.info(`${relativePath} is already up to date`);
+            }
+
+            core.setOutput('title', `SmartGit ${version}`);
+            core.setOutput('version', version);
+      -
+        name: Create pull request
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          base: ${{ github.event.repository.default_branch }}
+          branch: update-smartgit
+          token: ${{ steps.write-app.outputs.token }}
+          commit-message: ${{ steps.update.outputs.title }}
+          title: ${{ steps.update.outputs.title }}
+          signoff: true
+          sign-commits: true
+          delete-branch: true
+          body: |
+            This updates SmartGit to ${{ steps.update.outputs.version }}.
+
+  diff:
+    if: github.event_name == 'pull_request'
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      -
+        name: Update SmartGit
+        id: update
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: *update-script
+      -
+        name: Show diff
+        shell: pwsh
+        run: |
+          $diff = git --no-pager diff -- build.properties
+          if ($diff) {
+            $diff
+          } else {
+            Write-Host "No update diff."
+          }
