@@ -56,7 +56,7 @@ jobs:
             const fs = require('fs');
             const path = require('path');
 
-            const updateFeed = 'https://www.syntevo.com/smartgit/autoupdate';
+            const updateFeed = 'https://www.smartgit.dev/autoupdate';
             const stablePage = 'https://www.smartgit.dev/download/';
             const response = await fetch(updateFeed);
             if (!response.ok) {
